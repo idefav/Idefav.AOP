@@ -1,0 +1,7 @@
+C:\Sources\Idefav.AOP\Idefav.AOP.TestApp\bin\Debug\Idefav.AOP.TestApp.exe
+C:\Sources\Idefav.AOP\Idefav.AOP.TestApp\bin\Debug\Idefav.AOP.TestApp.pdb
+C:\Sources\Idefav.AOP\Idefav.AOP.TestApp\bin\Debug\Idefav.AOP.Interface.dll
+C:\Sources\Idefav.AOP\Idefav.AOP.TestApp\bin\Debug\Idefav.AOP.Interface.pdb
+C:\Sources\Idefav.AOP\Idefav.AOP.TestApp\obj\Debug\Idefav.AOP.TestApp.csprojResolveAssemblyReference.cache
+C:\Sources\Idefav.AOP\Idefav.AOP.TestApp\obj\Debug\Idefav.AOP.TestApp.exe
+C:\Sources\Idefav.AOP\Idefav.AOP.TestApp\obj\Debug\Idefav.AOP.TestApp.pdb
