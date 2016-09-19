@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Idefav.AOP.Interface;
 using Mono.Cecil;
 using Mono.Cecil.Cil;
@@ -48,12 +49,12 @@ namespace Idefav.AOP.InjectTask
         {
             var mtype = modeul.Types.Where(t => !t.IsSpecialName).Where(t => !t.CustomAttributes.Any(k => k.AttributeType.FullName == typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute).FullName)).ToList();
 
-            mtype.Where(t => t.CustomAttributes.Any(k => IsSubclassOf(k.AttributeType.Resolve(), t.Module.Import(typeof(MatchedMethodInterceptBase)).Resolve(), false)))
+            mtype.Where(t => t.CustomAttributes.Any(k => IsSubclassOf(k.AttributeType.Resolve(), t.Module.Import(typeof(IMethodInject)).Resolve(), true)))
                 .Select(t =>
                     new
                     {
                         Type = t,
-                        CustomAttributes = t.CustomAttributes.Where(attr => IsSubclassOf(attr.AttributeType.Resolve(), t.Module.Import(typeof(MatchedMethodInterceptBase)).Resolve(), false)).ToList(),
+                        CustomAttributes = t.CustomAttributes.Where(attr => IsSubclassOf(attr.AttributeType.Resolve(), t.Module.Import(typeof(IMethodInject)).Resolve(), true)).ToList(),
                     })
                 .ToList().ForEach(
                 t =>
@@ -61,20 +62,26 @@ namespace Idefav.AOP.InjectTask
                     t.CustomAttributes.ForEach(attr =>
                     {
 
-                        t.Type.Methods.Where(m => !m.IsSpecialName && !m.IsSetter && !m.IsGetter && MatchedMethodInterceptBaseMatch(attr.Properties.Single(p => p.Name == "Rule").Argument.Value.ToString(), m.Name)
+                        t.Type.Methods.Where(m => !m.IsSpecialName && !m.IsSetter && !m.IsGetter &&!m.CustomAttributes.Any(c=>c.AttributeType.FullName==typeof(NonInject).FullName)
                        && !t.CustomAttributes.Any(k => k.AttributeType.FullName == typeof(System.Runtime.CompilerServices.CompilerGeneratedAttribute).FullName))
                        .ToList().ForEach(
                        k =>
                        {
+                           k.CustomAttributes.Add(attr);
                            DealMethodInject(attr, t.Type, k, InjectAttributeUsage.Class);
+                           //k.CustomAttributes.Remove(attr);
                        });
                     });
 
                 });
 
-            mtype.ForEach(t =>
+            mtype.Where(t =>!(t.CustomAttributes.Any(k => IsSubclassOf(k.AttributeType.Resolve(), t.Module.Import(typeof(IMethodInject)).Resolve(), true)))).ToList().ForEach(t =>
             {
                 CheckMethods(t);
+               
+            });
+            mtype.ForEach(t =>
+            {
                 CheckPropertys(t);
             });
         }
@@ -191,25 +198,139 @@ namespace Idefav.AOP.InjectTask
             //method.Body.Variables.Add(varexception);
             methodBuilder.AddExceptonVar(new VariableDefinition(module.Import(typeof(System.Exception))));
 
-            var imethodInject=new VariableDefinition(module.Import(typeof(IMethodInject)));
+            var imethodInject = new VariableDefinition(module.Import(typeof(IMethodInject)));
             methodBuilder.AddVar(imethodInject);
 
-            var varmethodexcetionEventargs=new VariableDefinition(module.Import(typeof(MethodExecutionEventArgs)));
+            var varmethodexcetionEventargs = new VariableDefinition(module.Import(typeof(MethodExecutionEventArgs)));
             methodBuilder.AddVar(varmethodexcetionEventargs);
 
-            // 初始化ImethodInject
+            var varmethodbase = new VariableDefinition(module.Import(typeof(MethodBase)));
+            methodBuilder.AddVar(varmethodbase);
+            var varinstance = new VariableDefinition(module.Import(typeof(object)));
+            methodBuilder.AddVar(varinstance);
+            var varparams = new VariableDefinition(module.Import(typeof(object[])));
+            methodBuilder.AddVar(varparams);
+
+            var varExceptionStrategy = new VariableDefinition(module.Import(typeof(ExceptionStrategy)));
+            methodBuilder.AddVar(varExceptionStrategy);
+
+            // MethodBase
+            if (usage == InjectAttributeUsage.Property)
+            {
+                methodBuilder.AddRange(new[]
+                {
+                     il.Create(OpCodes.Ldtoken,mtype),
+                     il.Create(OpCodes.Call,module.Import(typeof(System.Type).GetMethod("GetTypeFromHandle",new Type[]{typeof(System.RuntimeTypeHandle)}))),
+                     il.Create(OpCodes.Ldstr,property.Name),
+                     il.Create(OpCodes.Ldtoken,method.IsGetter?method.ReturnType:method.Parameters[0].ParameterType),
+                     il.Create(OpCodes.Call,module.Import(typeof(System.Type).GetMethod("GetTypeFromHandle",new Type[]{typeof(System.RuntimeTypeHandle)}))),
+                     il.Create(OpCodes.Call,module.Import(typeof(System.Type).GetMethod("GetProperty",new Type[]{typeof(string),typeof(Type)}))),
+                     il.Create(OpCodes.Stloc_S,varmethodbase),
+                });
+            }
+            else
+            {
+                methodBuilder.AddRange(new[]
+            {
+                il.Create(OpCodes.Nop),
+                il.Create(OpCodes.Call,module.Import(typeof(MethodBase).GetMethod("GetCurrentMethod"))),
+                il.Create(OpCodes.Stloc_S,varmethodbase),
+            });
+            }
+            
+
+            // 函数参数
             methodBuilder.AddRange(new[]
             {
                 il.Create(OpCodes.Nop),
-                il.Create(OpCodes.Ldtoken,methodInject.AttributeType ),
-                 il.Create(OpCodes.Call,module.Import(typeof(System.Type).GetMethod("GetTypeFromHandle",new Type[]{typeof(System.RuntimeTypeHandle)}))),
-                 il.Create(OpCodes.Ldc_I4_0),
-                 il.Create(OpCodes.Callvirt,module.Import(typeof(System.Reflection.MemberInfo).GetMethod("GetCustomAttributes",new Type[]{typeof(System.Type),typeof(bool)}))),
-                 il.Create(OpCodes.Ldc_I4_0),
-                 il.Create(OpCodes.Ldelem_Ref),
-                 il.Create(OpCodes.Isinst,methodInject.AttributeType),
-                il.Create(OpCodes.Stloc_S,imethodInject)
+                il.Create(OpCodes.Ldloc_S, varmethodbase),
+                il.Create(OpCodes.Ldtoken, module.Import(typeof (IMethodInject))),
+                il.Create(OpCodes.Call,
+                    module.Import(typeof (Type).GetMethod("GetTypeFromHandle", new[] {typeof (RuntimeTypeHandle)}))),
+                il.Create(OpCodes.Ldc_I4_0),
+                il.Create(OpCodes.Callvirt,
+                    module.Import(typeof (MethodBase).GetMethod("GetCustomAttributes",
+                        new[] {typeof (Type), typeof (bool)}))),
+                il.Create(OpCodes.Stloc_S, varparams),
+                il.Create(OpCodes.Ldloc_S, varparams),
+                il.Create(OpCodes.Ldlen)
+            })
+                .Ifelsetrue(() => new List<Instruction>
+                {
+                    il.Create(OpCodes.Ldloc_S, varparams),
+                    il.Create(OpCodes.Ldc_I4_0),
+                    il.Create(OpCodes.Ldelem_Ref),
+                    il.Create(OpCodes.Isinst, module.Import(typeof (IMethodInject))),
+                    il.Create(OpCodes.Stloc_S, imethodInject),
+                }, () => new List<Instruction>
+                {
+                    il.Create(OpCodes.Ldnull),
+                    il.Create(OpCodes.Stloc_S, imethodInject),
+                })
+                .AddRange(new[]
+                {
+                    il.Create(OpCodes.Ldnull),
+                    il.Create(OpCodes.Stloc_S, varinstance),
+                    il.Create(OpCodes.Ldloc_S, varmethodbase),
+                    il.Create(OpCodes.Callvirt, module.Import(typeof (MethodBase).GetMethod("get_IsStatic"))),
+                    il.Create(OpCodes.Ldc_I4_0),
+                    il.Create(OpCodes.Ceq)
+
+                })
+            .Iffalse(() => new List<Instruction>
+            {
+                il.Create(OpCodes.Nop),
+                
+            }, () => new List<Instruction>
+            {
+                il.Create(OpCodes.Ldarg_0)
+
             });
+
+            methodBuilder.AddRange(new[]
+            {
+                il.Create(OpCodes.Ldloc_S,varmethodbase),
+                il.Create(OpCodes.Ldloc_S,varinstance),
+                il.Create(OpCodes.Ldloc_S,varparams),
+            });
+            if (method.ReturnType.FullName != "System.Void")
+            {
+                methodBuilder.Add(il.Create(OpCodes.Ldstr, method.ReturnType.FullName));
+            }
+            else
+            {
+                methodBuilder.Add(il.Create(OpCodes.Ldnull));
+            }
+            methodBuilder.AddRange(new[]
+            {
+                
+                il.Create(OpCodes.Newobj,module.Import(typeof(MethodExecutionEventArgs).GetConstructor(new [] {typeof(MethodBase),typeof(object),typeof(object[]),typeof(string)}))),
+                il.Create(OpCodes.Stloc_S,varmethodexcetionEventargs)
+            });
+
+
+            // 初始化ImethodInject
+            //methodBuilder.AddRange(new[]
+            //{
+            //    il.Create(OpCodes.Nop),
+            //    il.Create(OpCodes.Ldtoken,methodInject.AttributeType ),
+            //    il.Create(OpCodes.Call,module.Import(typeof(System.Type).GetMethod("GetTypeFromHandle",new Type[]{typeof(System.RuntimeTypeHandle)}))),
+            //    il.Create(OpCodes.Ldc_I4_0),
+            //    il.Create(OpCodes.Callvirt,module.Import(typeof(System.Reflection.MemberInfo).GetMethod("GetCustomAttributes",new Type[]{typeof(System.Type),typeof(bool)}))),
+            //    il.Create(OpCodes.Ldc_I4_0),
+            //    il.Create(OpCodes.Ldelem_Ref),
+            //    il.Create(OpCodes.Isinst,methodInject.AttributeType),
+            //    il.Create(OpCodes.Stloc_S,imethodInject)
+            //});
+            //执行开始函数
+            methodBuilder.AddRange(new[]
+            {
+                il.Create(OpCodes.Ldloc_S,imethodInject),
+                il.Create(OpCodes.Ldloc_S,varmethodexcetionEventargs),
+                il.Create(OpCodes.Callvirt,module.Import(typeof(IMethodInject).GetMethod("Executeing",new Type[] {typeof(MethodExecutionEventArgs)}))),
+                il.Create(OpCodes.Pop)
+            });
+
 
             // 调用原来的函数
             // 判断是不是静态函数
@@ -226,6 +347,9 @@ namespace Idefav.AOP.InjectTask
                 il.Create(OpCodes.Call,newmethod),
 
             });
+
+            
+
             if (method.ReturnType.FullName != "System.Void")
             {
                 var varreturnValue = new VariableDefinition(method.ReturnType);
@@ -235,15 +359,78 @@ namespace Idefav.AOP.InjectTask
                 methodBuilder.AddRange(new[]
                 {
                     il.Create(OpCodes.Stloc_S, varreturnValue),
+                    
+                });
+                // 执行完成函数
+                methodBuilder.AddRange(new[]
+                {
+                    il.Create(OpCodes.Ldloc_S,varmethodexcetionEventargs),
+                    il.Create(OpCodes.Ldloc_S,varreturnValue),
+                    il.Create(OpCodes.Box,module.Import(method.ReturnType)),
+                    il.Create(OpCodes.Callvirt,module.Import(typeof(MethodExecutionEventArgs).GetMethod("set_ReturnValue",new []{typeof(object)}))),
+                    il.Create(OpCodes.Nop),
+                    il.Create(OpCodes.Ldloc_S,imethodInject),
+                    il.Create(OpCodes.Ldloc_S,varmethodexcetionEventargs),
+                    il.Create(OpCodes.Callvirt,module.Import(typeof(IMethodInject).GetMethod("Executed",new Type[] {typeof(MethodExecutionEventArgs)}))),
+                    il.Create(OpCodes.Nop),
+                });
+                methodBuilder.AddRange(new[]
+                {
                     il.Create(OpCodes.Leave_S, methodBuilder.Lastreturn),
                     il.Create(OpCodes.Nop)
-                }).SetTryEnd().SetHandleStart().AddRange(new[]
+                });
+
+                methodBuilder.SetTryEnd()
+                .SetHandleStart()
+                .AddRange(new[]
                 {
                     il.Create(OpCodes.Stloc_S, methodBuilder.ExceptionVar),
+                    il.Create(OpCodes.Ldloc_S,varmethodexcetionEventargs),
                     il.Create(OpCodes.Ldloc_S, methodBuilder.ExceptionVar),
-                    il.Create(OpCodes.Throw),
+                    il.Create(OpCodes.Box,methodBuilder.ExceptionVar),
+                    il.Create(OpCodes.Callvirt,module.Import(typeof(MethodExecutionEventArgs).GetMethod("set_Exception",new []{typeof(object)}))),
+                    il.Create(OpCodes.Nop),
+                    il.Create(OpCodes.Ldloc_S,imethodInject),
+                    il.Create(OpCodes.Ldloc_S,varmethodexcetionEventargs),
+                    il.Create(OpCodes.Callvirt,module.Import(typeof(IMethodInject).GetMethod("Exceptioned",new Type[] {typeof(MethodExecutionEventArgs)}))),
+                    il.Create(OpCodes.Stloc_S,varExceptionStrategy),
                     il.Create(OpCodes.Nop)
-                }).SetHandleEnd().AddRange(new[]
+                });
+
+                // switch
+                methodBuilder.Switch(() => new List<Instruction>
+                {
+                    il.Create(OpCodes.Nop),
+                    il.Create(OpCodes.Callvirt,module.Import(typeof(MethodExecutionEventArgs).GetMethod("get_ReturnValue",new Type[]{}))),
+                    il.Create(OpCodes.Unbox_Any,method.ReturnType),
+                    il.Create(OpCodes.Stloc_S,varreturnValue),
+                    il.Create(OpCodes.Leave_S,methodBuilder.Lastreturn)
+                }, // handle
+                () => new List<Instruction>
+                {
+                    il.Create(OpCodes.Nop),
+                    il.Create(OpCodes.Callvirt,module.Import(typeof(MethodExecutionEventArgs).GetMethod("get_ReturnValue",new Type[]{}))),
+                    il.Create(OpCodes.Unbox_Any,method.ReturnType),
+                    il.Create(OpCodes.Stloc_S,varreturnValue),
+                    il.Create(OpCodes.Leave_S,methodBuilder.Lastreturn)
+                },
+                // throw
+                ()=>new List<Instruction>
+                {
+                    il.Create(OpCodes.Nop),
+                    il.Create(OpCodes.Ldloc_S,methodBuilder.ExceptionVar),
+                    il.Create(OpCodes.Throw)
+                },
+                ()=>new List<Instruction>
+                {
+                    il.Create(OpCodes.Nop),
+                    il.Create(OpCodes.Ldloc_S,methodBuilder.ExceptionVar),
+                    il.Create(OpCodes.Throw)
+                });
+
+                
+                methodBuilder.SetHandleEnd()
+                .AddRange(new[]
                 {
                     methodBuilder.Lastreturn,
                     il.Create(OpCodes.Ret)
@@ -252,6 +439,15 @@ namespace Idefav.AOP.InjectTask
             }
             else
             {
+                // 执行完成函数
+                methodBuilder.AddRange(new[]
+                {
+                    il.Create(OpCodes.Ldloc_S,imethodInject),
+                    il.Create(OpCodes.Ldloc_S,varmethodexcetionEventargs),
+                    il.Create(OpCodes.Callvirt,module.Import(typeof(IMethodInject).GetMethod("Executed",new Type[] {typeof(MethodExecutionEventArgs)}))),
+                    il.Create(OpCodes.Stloc_S,varExceptionStrategy),
+                    il.Create(OpCodes.Nop)
+                });
                 methodBuilder.AddRange(new[]
                 {
                     il.Create(OpCodes.Leave_S,methodBuilder.Lastreturn),
@@ -262,15 +458,55 @@ namespace Idefav.AOP.InjectTask
                 .AddRange(new[]
                 {
                     il.Create(OpCodes.Stloc_S, methodBuilder.ExceptionVar),
+                    il.Create(OpCodes.Ldloc_S,varmethodexcetionEventargs),
                     il.Create(OpCodes.Ldloc_S, methodBuilder.ExceptionVar),
-                    il.Create(OpCodes.Callvirt,method.Module.Import(typeof(System.Object).GetMethod("ToString"))),
-                    il.Create(OpCodes.Call,method.Module.Import(typeof(System.Console).GetMethod("WriteLine", new Type[] { typeof(string) }))),
-                    il.Create(OpCodes.Ldloc_S, methodBuilder.ExceptionVar),
+                    il.Create(OpCodes.Box,methodBuilder.ExceptionVar),
+                    il.Create(OpCodes.Callvirt,module.Import(typeof(MethodExecutionEventArgs).GetMethod("set_Exception",new []{typeof(object)}))),
+                    il.Create(OpCodes.Nop),
+                    il.Create(OpCodes.Ldloc_S,imethodInject),
+                    il.Create(OpCodes.Ldloc_S,varmethodexcetionEventargs),
+                    il.Create(OpCodes.Callvirt,module.Import(typeof(IMethodInject).GetMethod("Exceptioned",new Type[] {typeof(MethodExecutionEventArgs)}))),
+                    il.Create(OpCodes.Stloc_S,varExceptionStrategy),
+                    il.Create(OpCodes.Nop),
+                    //il.Create(OpCodes.Ldloc_S, methodBuilder.ExceptionVar),
+                    //il.Create(OpCodes.Callvirt,method.Module.Import(typeof(System.Object).GetMethod("ToString"))),
+                    //il.Create(OpCodes.Call,method.Module.Import(typeof(System.Console).GetMethod("WriteLine", new Type[] { typeof(string) }))),
+                    //il.Create(OpCodes.Ldloc_S, methodBuilder.ExceptionVar),
                     //il.Create(OpCodes.Throw),
+                    
+                });
+
+                // switch
+                methodBuilder.Switch(() => new List<Instruction>
+                {
+                    il.Create(OpCodes.Nop),
+                    
+                }, // handle
+                () => new List<Instruction>
+                {
+                    il.Create(OpCodes.Nop),
+                    
+                },
+                // throw
+                () => new List<Instruction>
+                {
+                    il.Create(OpCodes.Nop),
+                    il.Create(OpCodes.Ldloc_S,methodBuilder.ExceptionVar),
+                    il.Create(OpCodes.Throw)
+                },
+                () => new List<Instruction>
+                {
+                    il.Create(OpCodes.Nop),
+                    il.Create(OpCodes.Ldloc_S,methodBuilder.ExceptionVar),
+                    il.Create(OpCodes.Throw)
+                });
+
+                methodBuilder.AddRange(new[]
+                {
                     il.Create(OpCodes.Leave_S,methodBuilder.Lastreturn),
                     il.Create(OpCodes.Nop)
-                })
-                .SetHandleEnd()
+                });
+                methodBuilder.SetHandleEnd()
                 .Add(methodBuilder.Lastreturn);
             }
 

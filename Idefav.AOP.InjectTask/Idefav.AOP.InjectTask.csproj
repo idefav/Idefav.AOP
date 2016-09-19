@@ -49,6 +49,7 @@
     <Compile Include="ILHelper.cs" />
     <Compile Include="IMethodILInjectTask.cs" />
     <Compile Include="MethodILInjectTask.cs" />
+    <Compile Include="NonInject.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -42,6 +42,8 @@ namespace Idefav.AOP.InjectTask
     {
         public List<Instruction> Instructions { get; set; }
 
+        public Dictionary<string,Instruction> GotoList { get; set; } 
+
         public TryCatchPoint TryCatchPoint { get; set; }
 
         public ExceptionHandler ExceptionHandler { get; set; }
@@ -58,6 +60,7 @@ namespace Idefav.AOP.InjectTask
 
         public ILMethodBuilder(MethodDefinition method)
         {
+            this.GotoList=new Dictionary<string, Instruction>();
             Instructions = method.Body.Instructions.ToList();
             this.Method = method;
             TryCatchPoint=new TryCatchPoint();
@@ -68,11 +71,73 @@ namespace Idefav.AOP.InjectTask
 
         public ILMethodBuilder(MethodDefinition method, VariableDefinition returnVariableDefinition)
         {
+            this.GotoList = new Dictionary<string, Instruction>();
             Instructions = method.Body.Instructions.ToList();
             TryCatchPoint = new TryCatchPoint();
             IL = this.Method.Body.GetILProcessor();
             this.Lastreturn = IL.Create(OpCodes.Ldloc_S,returnVariableDefinition);
 
+        }
+
+        public ILMethodBuilder Goto(OpCode gotocode,Instruction destInstruction,Action<ILMethodBuilder> act)
+        {
+            Add(IL.Create(gotocode, destInstruction));
+            act(this);
+            Add(destInstruction);
+            return this;
+        }
+
+        public ILMethodBuilder Ifelsetrue(Func<List<Instruction>> actiontrue, Func<List<Instruction>> actionfalse)
+        {
+            var endcode = IL.Create(OpCodes.Nop);
+            var truelist = actiontrue();
+            var falselist = actionfalse();
+            Add(IL.Create(OpCodes.Brtrue_S,truelist.First()));
+            AddRange(falselist.ToArray());
+            Add(IL.Create(OpCodes.Br_S, endcode));
+            AddRange(truelist.ToArray());
+            Add(endcode);
+            return this;
+        }
+
+        public ILMethodBuilder Iffalse(Func<List<Instruction>> actiontrue, Func<List<Instruction>> actionfalse)
+        {
+            //var endcode = IL.Create(OpCodes.Nop);
+            var truelist = actiontrue();
+            var falselist = actionfalse();
+            Add(IL.Create(OpCodes.Brfalse_S, falselist.First()));
+            AddRange(truelist.ToArray());
+            //Add(IL.Create(OpCodes.Br_S, endcode));
+            AddRange(falselist.ToArray());
+            //Add(endcode);
+            return this;
+        }
+
+        public ILMethodBuilder Switch(Func<List<Instruction>> defaultcase, params Func<List<Instruction>>[] castaction)
+        {
+            List<Instruction> firstcase=new List<Instruction>();
+            foreach (Func<List<Instruction>> func in castaction)
+            {
+                firstcase.Add(func().First());
+            }
+            firstcase.Add(defaultcase().First());
+            Add(IL.Create(OpCodes.Switch, firstcase.ToArray()));
+            Add(IL.Create(OpCodes.Br_S, defaultcase().First()));
+            Add(IL.Create(OpCodes.Nop));
+            foreach (Func<List<Instruction>> func in castaction)
+            {
+                AddRange(func().ToArray());
+                Add(IL.Create(OpCodes.Nop));
+            }
+            AddRange(defaultcase().ToArray());
+            Add(IL.Create(OpCodes.Nop));
+            return this;
+        }
+
+        public ILMethodBuilder LocIn(string loc)
+        {
+            Add(this.GotoList[loc]);
+            return this;
         }
 
         public ILMethodBuilder AddVar(VariableDefinition variable)

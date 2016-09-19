@@ -21,7 +21,7 @@ namespace Idefav.AOP.Interface
 
       
 
-        public ExceptionStrategy Exceptioned(MethodExecutionEventArgs args)
+        public virtual ExceptionStrategy Exceptioned(MethodExecutionEventArgs args)
         {
             return ExceptionStrategy.ReThrow;
         }
