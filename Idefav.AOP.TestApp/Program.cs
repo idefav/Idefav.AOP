@@ -12,8 +12,8 @@ namespace Idefav.AOP.TestApp
 
         public static void Main(string[] args)
         {
-            new testclass().testm();
-            Console.WriteLine(new testclass().test2());
+            //new testclass().testm();
+            //Console.WriteLine(new testclass().test2());
             var testclass = new testclass();
             testclass.TestPro3 = "2";
             Console.WriteLine(testclass.TestPro3);
@@ -24,71 +24,74 @@ namespace Idefav.AOP.TestApp
     [TestAOP1]
     public class testclass
     {
-
-        public string testm()
+        
+        public void testm()
         {
-            var methodbase = MethodBase.GetCurrentMethod();
-            var ar = methodbase.GetCustomAttributes(typeof(IMethodInject), false);
-            IMethodInject methodInject = ar.Length > 0 ? ar[0] as IMethodInject : null;
-            object instance = null;
+            //var methodbase = MethodBase.GetCurrentMethod();
+            //var ar = methodbase.GetCustomAttributes(typeof(IMethodInject), false);
+            //IMethodInject methodInject = ar.Length > 0 ? ar[0] as IMethodInject : null;
+            //object instance = null;
 
-            if (!methodbase.IsStatic)
-            {
-                instance = this;
-            }
+            //if (!methodbase.IsStatic)
+            //{
+            //    instance = this;
+            //}
 
-            MethodExecutionEventArgs args = new MethodExecutionEventArgs(methodbase, instance, ar);
-            methodInject.Executeing(args);
-            //throw new Exception("Exception");
+            //MethodExecutionEventArgs args = new MethodExecutionEventArgs(methodbase, instance, ar);
+            //methodInject.Executeing(args);
+            ////throw new Exception("Exception");
            
-            try
-            {
+            //try
+            //{
                 Console.WriteLine("TestM函数执行完成");
                 var value = "this is a test string";
-                return value;
-            }
-            catch (Exception e)
-            {
-               var result= methodInject.Exceptioned(args);
-                switch (result)
-                {
-                        case ExceptionStrategy.Handle:
-                    {
-                            Console.WriteLine(e.ToString());
-                        break;
+                
+            //}
+            //catch (Exception e)
+            //{
+            //   var result= methodInject.Exceptioned(args);
+            //    switch (result)
+            //    {
+            //            case ExceptionStrategy.Handle:
+            //        {
+            //                Console.WriteLine(e.ToString());
+            //            break;
 
-                    }
-                        case ExceptionStrategy.ReThrow:
-                    {
-                        throw e;
+            //        }
+            //            case ExceptionStrategy.ReThrow:
+            //        {
+            //            throw e;
                         
-                    }
-                        case ExceptionStrategy.ThrowNew:
-                    {
-                        throw  new Exception(e.ToString());
-                    }
-                    default:
-                    {
-                            Console.WriteLine(e.ToString());
-                        break;
-                    }
-                }
-                Activator.CreateInstance()
+            //        }
+            //            case ExceptionStrategy.ThrowNew:
+            //        {
+            //            throw  new Exception(e.ToString());
+            //        }
+            //        default:
+            //        {
+            //                Console.WriteLine(e.ToString());
+            //            break;
+            //        }
+            //    }
+                
 
-                return default(string);
-            }
+            //    return default(string);
+            //}
             //args.ReturnValue = value;
             //methodInject.Executed(args);
            
         }
 
+        
         public string test2()
         {
             Console.WriteLine("Test2");
+            throw new Exception("excetpion");
+
             return "Test2 完成";
         }
 
-        [PropertyInterceptBase(Action = PropertyInterceptAction.Get)]
+        [TestAopProAttribute(Action = PropertyInterceptAction.Get)]
         public string TestPro3 { get; set; }
     }
 
@@ -108,7 +111,7 @@ namespace Idefav.AOP.TestApp
         {
             Console.WriteLine(this.GetType() + ":" + "Exceptioned");
 
-            return ExceptionStrategy.Handle;
+            return ExceptionStrategy.ReThrow;
         }
 
         public void Executed(MethodExecutionEventArgs args)

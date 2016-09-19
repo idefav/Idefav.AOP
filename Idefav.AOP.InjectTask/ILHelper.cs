@@ -116,20 +116,23 @@ namespace Idefav.AOP.InjectTask
         public ILMethodBuilder Switch(Func<List<Instruction>> defaultcase, params Func<List<Instruction>>[] castaction)
         {
             List<Instruction> firstcase=new List<Instruction>();
+            Dictionary<Instruction,List<Instruction>> list=new Dictionary<Instruction, List<Instruction>>();
             foreach (Func<List<Instruction>> func in castaction)
             {
-                firstcase.Add(func().First());
+                var l = func();
+                list.Add(l.First(),l);
             }
-            firstcase.Add(defaultcase().First());
-            Add(IL.Create(OpCodes.Switch, firstcase.ToArray()));
-            Add(IL.Create(OpCodes.Br_S, defaultcase().First()));
+            var defaultlist = defaultcase();
+            //list.Add(defaultlist.First(), defaultlist);
+            Add(IL.Create(OpCodes.Switch, list.Keys.ToArray()));
+            Add(IL.Create(OpCodes.Br_S, defaultlist.First()));
             Add(IL.Create(OpCodes.Nop));
-            foreach (Func<List<Instruction>> func in castaction)
+            foreach (KeyValuePair<Instruction, List<Instruction>> keyValuePair in list)
             {
-                AddRange(func().ToArray());
+                AddRange(keyValuePair.Value.ToArray());
                 Add(IL.Create(OpCodes.Nop));
             }
-            AddRange(defaultcase().ToArray());
+            AddRange(defaultlist.ToArray());
             Add(IL.Create(OpCodes.Nop));
             return this;
         }

@@ -387,48 +387,54 @@ namespace Idefav.AOP.InjectTask
                     il.Create(OpCodes.Stloc_S, methodBuilder.ExceptionVar),
                     il.Create(OpCodes.Ldloc_S,varmethodexcetionEventargs),
                     il.Create(OpCodes.Ldloc_S, methodBuilder.ExceptionVar),
-                    il.Create(OpCodes.Box,methodBuilder.ExceptionVar),
-                    il.Create(OpCodes.Callvirt,module.Import(typeof(MethodExecutionEventArgs).GetMethod("set_Exception",new []{typeof(object)}))),
+                    //il.Create(OpCodes.Box,module.Import(methodBuilder.ExceptionVar.GetType())),
+                    il.Create(OpCodes.Callvirt,module.Import(typeof(MethodExecutionEventArgs).GetMethod("set_Exception",new []{typeof(Exception)}))),
                     il.Create(OpCodes.Nop),
                     il.Create(OpCodes.Ldloc_S,imethodInject),
                     il.Create(OpCodes.Ldloc_S,varmethodexcetionEventargs),
                     il.Create(OpCodes.Callvirt,module.Import(typeof(IMethodInject).GetMethod("Exceptioned",new Type[] {typeof(MethodExecutionEventArgs)}))),
                     il.Create(OpCodes.Stloc_S,varExceptionStrategy),
-                    il.Create(OpCodes.Nop)
+                    
+                    //il.Create(OpCodes.Ldloc_S,methodBuilder.ExceptionVar),
+                    il.Create(OpCodes.Ldloc_S,varExceptionStrategy),
+                    
                 });
 
-                // switch
-                methodBuilder.Switch(() => new List<Instruction>
-                {
+                //switch
+
+               methodBuilder.Switch(() => new List<Instruction>
+               {
                     il.Create(OpCodes.Nop),
+                    il.Create(OpCodes.Ldloc_S,varmethodexcetionEventargs),
                     il.Create(OpCodes.Callvirt,module.Import(typeof(MethodExecutionEventArgs).GetMethod("get_ReturnValue",new Type[]{}))),
                     il.Create(OpCodes.Unbox_Any,method.ReturnType),
                     il.Create(OpCodes.Stloc_S,varreturnValue),
                     il.Create(OpCodes.Leave_S,methodBuilder.Lastreturn)
-                }, // handle
-                () => new List<Instruction>
-                {
+               }, // handle
+               () => new List<Instruction>
+               {
                     il.Create(OpCodes.Nop),
+                    il.Create(OpCodes.Ldloc_S,varmethodexcetionEventargs),
                     il.Create(OpCodes.Callvirt,module.Import(typeof(MethodExecutionEventArgs).GetMethod("get_ReturnValue",new Type[]{}))),
                     il.Create(OpCodes.Unbox_Any,method.ReturnType),
                     il.Create(OpCodes.Stloc_S,varreturnValue),
                     il.Create(OpCodes.Leave_S,methodBuilder.Lastreturn)
-                },
-                // throw
-                ()=>new List<Instruction>
-                {
+               },
+               // throw
+               () => new List<Instruction>
+               {
                     il.Create(OpCodes.Nop),
                     il.Create(OpCodes.Ldloc_S,methodBuilder.ExceptionVar),
                     il.Create(OpCodes.Throw)
-                },
-                ()=>new List<Instruction>
-                {
+               },
+               () => new List<Instruction>
+               {
                     il.Create(OpCodes.Nop),
                     il.Create(OpCodes.Ldloc_S,methodBuilder.ExceptionVar),
                     il.Create(OpCodes.Throw)
-                });
+               });
 
-                
+
                 methodBuilder.SetHandleEnd()
                 .AddRange(new[]
                 {
@@ -460,14 +466,14 @@ namespace Idefav.AOP.InjectTask
                     il.Create(OpCodes.Stloc_S, methodBuilder.ExceptionVar),
                     il.Create(OpCodes.Ldloc_S,varmethodexcetionEventargs),
                     il.Create(OpCodes.Ldloc_S, methodBuilder.ExceptionVar),
-                    il.Create(OpCodes.Box,methodBuilder.ExceptionVar),
-                    il.Create(OpCodes.Callvirt,module.Import(typeof(MethodExecutionEventArgs).GetMethod("set_Exception",new []{typeof(object)}))),
+                    //il.Create(OpCodes.Box,methodBuilder.ExceptionVar),
+                    il.Create(OpCodes.Callvirt,module.Import(typeof(MethodExecutionEventArgs).GetMethod("set_Exception",new []{typeof(Exception)}))),
                     il.Create(OpCodes.Nop),
                     il.Create(OpCodes.Ldloc_S,imethodInject),
                     il.Create(OpCodes.Ldloc_S,varmethodexcetionEventargs),
                     il.Create(OpCodes.Callvirt,module.Import(typeof(IMethodInject).GetMethod("Exceptioned",new Type[] {typeof(MethodExecutionEventArgs)}))),
                     il.Create(OpCodes.Stloc_S,varExceptionStrategy),
-                    il.Create(OpCodes.Nop),
+                    il.Create(OpCodes.Ldloc_S,varExceptionStrategy),
                     //il.Create(OpCodes.Ldloc_S, methodBuilder.ExceptionVar),
                     //il.Create(OpCodes.Callvirt,method.Module.Import(typeof(System.Object).GetMethod("ToString"))),
                     //il.Create(OpCodes.Call,method.Module.Import(typeof(System.Console).GetMethod("WriteLine", new Type[] { typeof(string) }))),
