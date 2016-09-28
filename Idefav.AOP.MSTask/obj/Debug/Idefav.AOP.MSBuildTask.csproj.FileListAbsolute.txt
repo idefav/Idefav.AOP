@@ -1,0 +1,10 @@
+D:\Sources\Idefav.AOP\Idefav.AOP.MSTask\bin\Debug\Idefav.AOP.MSBuildTask.dll
+D:\Sources\Idefav.AOP\Idefav.AOP.MSTask\bin\Debug\Idefav.AOP.MSBuildTask.pdb
+D:\Sources\Idefav.AOP\Idefav.AOP.MSTask\bin\Debug\Idefav.AOP.InjectTask.exe
+D:\Sources\Idefav.AOP\Idefav.AOP.MSTask\bin\Debug\Mono.Cecil.dll
+D:\Sources\Idefav.AOP\Idefav.AOP.MSTask\bin\Debug\Idefav.AOP.Interface.dll
+D:\Sources\Idefav.AOP\Idefav.AOP.MSTask\bin\Debug\Idefav.AOP.InjectTask.pdb
+D:\Sources\Idefav.AOP\Idefav.AOP.MSTask\bin\Debug\Idefav.AOP.Interface.pdb
+D:\Sources\Idefav.AOP\Idefav.AOP.MSTask\obj\Debug\Idefav.AOP.MSBuildTask.csprojResolveAssemblyReference.cache
+D:\Sources\Idefav.AOP\Idefav.AOP.MSTask\obj\Debug\Idefav.AOP.MSBuildTask.dll
+D:\Sources\Idefav.AOP\Idefav.AOP.MSTask\obj\Debug\Idefav.AOP.MSBuildTask.pdb

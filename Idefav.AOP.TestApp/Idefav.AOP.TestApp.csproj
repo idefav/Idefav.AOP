@@ -52,11 +52,10 @@
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
-  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
-  <Target Name="BeforeBuild">
-  </Target>
+  <UsingTask TaskName="IdefavMsBuildTask" AssemblyFile="D:\Sources\Idefav.AOP\Idefav.AOP.Dll\Idefav.AOP.MSTask.dll"/> 
+  <Target Name="BeforeBuild"> 
+  </Target> 
   <Target Name="AfterBuild">
-  </Target>
-  -->
+    <IdefavMsBuildTask OutputFile="D:\Sources\Idefav.AOP\Idefav.AOP.TestApp\bin\Debug\Idefav.AOP.TestApp.exe" TaskFile="D:\Sources\Idefav.AOP\Idefav.AOP.Dll\Idefav.AOP.InjectTask.exe"/> 
+  </Target> 
 </Project>

@@ -82,7 +82,7 @@ namespace Idefav.AOP.TestApp
            
         }
 
-        
+        [TestAOP1]
         public string test2()
         {
             Console.WriteLine("Test2");
@@ -110,7 +110,7 @@ namespace Idefav.AOP.TestApp
         public ExceptionStrategy Exceptioned(MethodExecutionEventArgs args)
         {
             Console.WriteLine(this.GetType() + ":" + "Exceptioned");
-
+            
             return ExceptionStrategy.ReThrow;
         }
 

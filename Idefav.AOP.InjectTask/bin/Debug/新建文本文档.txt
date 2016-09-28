@@ -1,0 +1,2 @@
+  Idefav.AOP.InjectTask, Version=1.0.0.0, Culture=neutral, PublicKeyToken=dacc0b
+08b6bc279f, processorArchitecture=MSIL

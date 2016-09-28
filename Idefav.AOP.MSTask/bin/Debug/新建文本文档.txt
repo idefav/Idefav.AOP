@@ -1,0 +1,2 @@
+  Idefav.AOP.MSTask, Version=1.0.0.0, Culture=neutral, PublicKeyToken=dacc0b08b6
+bc279f, processorArchitecture=MSIL

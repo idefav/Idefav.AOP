@@ -14,3 +14,4 @@ D:\Sources\Idefav.AOP\Idefav.AOP.InjectTask\bin\Debug\Idefav.AOP.Interface.dll
 D:\Sources\Idefav.AOP\Idefav.AOP.InjectTask\bin\Debug\Mono.Cecil.dll
 D:\Sources\Idefav.AOP\Idefav.AOP.InjectTask\bin\Debug\Idefav.AOP.Interface.pdb
 D:\Sources\Idefav.AOP\Idefav.AOP.InjectTask\obj\Debug\Idefav.AOP.InjectTask.csprojResolveAssemblyReference.cache
+D:\Sources\Idefav.AOP\Idefav.AOP.InjectTask\bin\Debug\Idefav.AOP.InjectTask.exe.config

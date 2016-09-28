@@ -1,0 +1,2 @@
+  Idefav.AOP.Interface, Version=1.0.0.0, Culture=neutral, PublicKeyToken=dacc0b0
+8b6bc279f, processorArchitecture=MSIL
